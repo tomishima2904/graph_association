@@ -91,7 +91,7 @@ class GraphAssociation:
                         in zip(compared_indicies, compared_titles, compared_vecs)
                     ]
                 stim['associated'] = compared_results  # shape==[r, 4]
-                if n==0: break  ####################################################################  IT HAS TO BE REMORVD
+                if n==0: break  ####################################################################  IT HAS TO BE REMOVED!!!
 
             # Predict answer(s) based on stim["results"]
             research_dict = {}
@@ -103,7 +103,7 @@ class GraphAssociation:
                         research_dict[stim['associated'][r]['title']] += 1
                     else:
                         research_dict[stim['associated'][r]['title']] = 1
-                    if n == 0: break ####################################################################  IT HAS TO BE REMORVD
+                    if n == 0: break ####################################################################  IT HAS TO BE REMOVED!!!
                 # if found the title that is associated with all stims
                 if self.args.threshold in research_dict.values():
                     found_flag = True
@@ -114,7 +114,7 @@ class GraphAssociation:
             self.all_info[b]['results']['predictions'] = research_dict
             if found_flag: self.all_info[b]['results']['rank'] = r + 1
             else: self.all_info[b]['results']['rank'] = 0
-            if b==0: break  ####################################################################  IT HAS TO BE REMORVD
+            if b==0: break  ####################################################################  IT HAS TO BE REMOVED!!!
 
         print(f'Associated in {time.time()-t}s')
         return self.all_info

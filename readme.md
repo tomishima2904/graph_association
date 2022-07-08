@@ -111,4 +111,4 @@ results[b]
 - [facebookresearch/PyTorch-BigGraph](https://github.com/facebookresearch/PyTorch-BigGraph) (公式のgithub)
 - [Welcome to PyTorch-BigGraph’s documentation!](https://torchbiggraph.readthedocs.io/en/latest/index.html) (公式のリファレンス)
 - ["Hello World!" in PyTorch BigGraph](http://nadbordrozd.github.io/blog/2020/08/04/hello-world-in-pytorch-biggraph/) (Pytorch-Biggaphのチュートリアル記事)
-- [Pytorch-BigGraphによるWikipedia日本語記事のグラフ埋め込み](https://buildersbox.corp-sansan.com/entry/2019/09/26/110000)  (日本語で書かれたPytorch-Biggraphの紹介記事)
+- [Pytorch-BigGraphによるWikipedia日本語記事のグラフ埋め込み](https://buildersbox.corp-sansan.com/entry/2019/09/26/110000)  (Pytorch-Biggraphの紹介記事)
