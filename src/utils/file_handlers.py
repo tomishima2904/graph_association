@@ -53,7 +53,7 @@ def csv_writer(path:str, results:list, header:list, encoding='utf-8') -> None:
         writer = csv.writer(f)
         writer.writerow(header)
         writer.writerows(results)
-    print(f"Successfully output {path}!")
+    print(f"Successfully dumped {path} !")
 
 
 # read .json
@@ -66,7 +66,7 @@ def json_reader(path:str, encoding='utf-8') -> dict:
 def json_writer(path:str, results:dict, encoding='utf-8') -> None:
     with open(path, 'w', encoding=encoding) as f:
         json.dump(results, f, ensure_ascii=False, indent=4)
-    print(f"Successfully output {path}!")
+    print(f"Successfully dumped {path} !")
 
 
 # read .pickle
@@ -80,4 +80,4 @@ def pickle_reader(path:str) -> Union[dict, list, pd.DataFrame]:
 def pickle_writer(path:str, results:Union[dict, list]) -> None:
     with open(path, 'wb') as f:
         pickle.dump(results, f)
-    print(f"Successfully output {path}!")
+    print(f"Successfully dumped {path} !")

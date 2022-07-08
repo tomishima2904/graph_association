@@ -7,6 +7,7 @@ class Comparators:
     def __init__(self, args) -> None:
         self.args = args
         self.device = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
+        print(self.device)
         pass
 
 
@@ -29,7 +30,7 @@ class Comparators:
             np.ndarray: compared_tensors
         """
 
-        all_tensors = torch.tensor(all_vectors, requires_grad=False)
+        all_tensors = torch.tensor(all_vectors, requires_grad=False).to(self.device)
         query_tensors = torch.tensor(query_vectors, requires_grad=False).to(self.device)
 
         if self.args.comparator == 'dot':
