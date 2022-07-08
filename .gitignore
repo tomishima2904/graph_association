@@ -1,0 +1,6 @@
+*test*
+results
+Docker
+*__pycache__*
+models/embeddings*
+note.txt
