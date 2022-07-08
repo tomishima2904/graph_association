@@ -16,9 +16,13 @@
 ## 使用方法 (Usage)
 ```
 python src/graph_association.py \
-    --comparator='dot'
+    --comparator='dot' \
+    --threshold=5 \
+    --top_k=150 \
+    --use_cuda='f' \
+    --with_vec='f'
 ```
-コマンドライン引数で適当にオプションを変えることができる。
+コマンドライン引数で適当に[オプション](https://github.com/tomishima2904/graph_association/blob/master/src/config.py)を変えることができる。
 
 # ディレクトリ・ファイルについて (About directories and files)
 主要なファイルのみ説明する。
@@ -62,6 +66,7 @@ answer,stims,category
 from utils.filehandler import json_reader
 results = json_reader(results_date_time.json)
 
+print(type(results))  # dict
 print(len(results))  # 問題数(b==約80題)
 print(len(results[b]['stims']))  # 刺激語の数(n==5語)
 print(len(results[b]['stims'][n]['associated']))  # 刺激語の埋め込み表現に近い上位の語群の数(r==デフォルトは上位150語)
@@ -79,7 +84,7 @@ results[b]
         │                                ├── ['id']  # str: タイトルに対応するwikidataのid
         │                                ├── ['title']  # str: 刺激語のベクトルに近かかったタイトル
         │                                ├── ['vec']  # list: タイトルのidに対応する埋め込み表現
-        │                                └── ['score']  # list: 刺激語とタイトルの類似度(デフォルトはdot積の値)
+        │                                └── ['score']  # float: 刺激語とタイトルの類似度(デフォルトはdot積の値)
         └── ['results']
                 ├── ['predictions']  # str: 予測結果
                 └── ['rank']  # int: 予測を断定した時の順位。断定できなかった場合は0。
