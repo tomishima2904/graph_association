@@ -4,3 +4,5 @@ Docker
 *__pycache__*
 models/embeddings*
 note.txt
+run.sh
+*.out

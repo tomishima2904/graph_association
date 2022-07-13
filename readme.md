@@ -40,7 +40,7 @@ answer,stims,category
 カレー,"['じゃがいも', '人参', '肉', 'たまねぎ', 'ルウ']",メニュー
 ```
 
-### dataset/fit2022_v2.csv
+### dataset/fit2022v2.csv
 以下の語句はwikidataにタイトルとして存在しなかったので、`dataset/fit2022.csv`から以下の語句を含む例文を削除した**72題**。。
 ```
 [布団干し, 長針, 短針, 尾ひれ, ガスの炎, 木の幹, 新学期, 救急室, レントゲン室, リハビリ訓練室, 両替所]
@@ -58,10 +58,29 @@ answer,stims,category
 
 ## results
 
+### *dataset*_*comparator*_*topk*.json
+`graph_association.compare()`の実行によって得ることのできる結果(`--with_vec='True'`の場合)。使い方及び構成は以下。
+```
+from utils.filehandler import json_reader
+compared_words = json_reader(results_date_time.json)
+
+"""
+以下のような構成となっている。
+compared_words[b*n]  # keyは刺激語のid
+                ├── ['stim']  # str: 刺激語のタイトル
+                ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
+                └── ['associated'][r]
+                                    ├── ['id']  # str: タイトルに対応するwikidataのid
+                                    ├── ['title']  # str: 刺激語のベクトルに近かかったタイトル
+                                    ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
+                                    └── ['score']  # float: 刺激語とタイトルの類似度(デフォルトはdot積の値)
+"""
+
+```
+
+
 ### results_*date*_*time*.json
-`graph_association()`の実行によって得ることのできる結果(`--with_vec='True'`の場合)。使い方及び構成は以下。
-
-
+`graph_association()`の実行によって得ることのできる結果。使い方及び構成は以下。
 ```
 from utils.filehandler import json_reader
 results = json_reader(results_date_time.json)
@@ -79,11 +98,9 @@ results[b]
         ├── ['stims'][n]
         │             ├── ['id']  # str: 刺激語に対応するwikidataのid
         │             ├── ['stim']  # str: 刺激語
-        │             ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
         │             └── ['associated'][r]
         │                                ├── ['id']  # str: タイトルに対応するwikidataのid
         │                                ├── ['title']  # str: 刺激語のベクトルに近かかったタイトル
-        │                                ├── ['vec']  # list: タイトルのidに対応する埋め込み表現
         │                                └── ['score']  # float: 刺激語とタイトルの類似度(デフォルトはdot積の値)
         └── ['results']
                 ├── ['predictions']  # str: 予測結果
