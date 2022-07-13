@@ -58,11 +58,11 @@ answer,stims,category
 
 ## results
 
-### *dataset*_*comparator*_*topk*.json
+### *dataset_comparator_topk_vec*.json
 `graph_association.compare()`の実行によって得ることのできる結果(`--with_vec='True'`の場合)。使い方及び構成は以下。
 ```
 from utils.filehandler import json_reader
-compared_words = json_reader(results_date_time.json)
+compared_words = json_reader(dataset_comparator_topk_vec.json)
 
 """
 以下のような構成となっている。
