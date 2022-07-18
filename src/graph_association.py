@@ -60,10 +60,9 @@ class GraphAssociation:
         for b, row in tqdm(enumerate(self.csv_data.itertuples()), total=self.num_b):
             stims = [stim for stim in eval(row.stims)]
             for n, stim in enumerate(stims):
-                if n != 0: continue  #                  <-                  be removed
                 print(f"{b:2d}-{n}: {stim}")
+                if stim in all_compared_stims.keys(): continue  # continue if stim is already compared
                 stim_id = self.title2id[stim]
-                all_compared_stims[stim_id] = {'stim': stim}
                 all_compared_vecs = self.comparator(self.all_vecs, self.id2vector[stim_id])  # compare a stim's vec with all title's vecs
                 sorted_args = [np.argsort(all_compared_vecs)[::-1][r].item() for r in self.ranks]
                 compared_vecs = [np.sort(all_compared_vecs)[::-1][r].tolist() for r in self.ranks]  # extract top k's vecs associated with a stim
@@ -82,7 +81,7 @@ class GraphAssociation:
                         for idx, title, score
                         in zip(compared_indicies, compared_titles, compared_vecs)
                     ]
-                all_compared_stims[stim_id]['associated'] = compared_results  # shape==[r, 3(4)]
+                all_compared_stims[stim] = compared_results  # shape==[r, 3(4)]
 
         print(f'Compared in {time.time()-t}s')
         json_writer(self.compared_stims_path, all_compared_stims)
