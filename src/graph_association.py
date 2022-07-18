@@ -21,9 +21,13 @@ class GraphAssociation:
 
     def __init__(self, args) -> None:
 
+        self.start_time = time.time()
         self.args = args  # set options
         self.comparator = Comparators(self.args)  # define dist func
-        self.start_time = time.time()
+        self.ranks = [i for i in range(self.args.top_k)]
+        if args.with_vec: vec = 'withV'
+        else: vec = 'WOV'
+        self.compared_stims_path = f"results/{self.args.dataset_path.replace('.csv', '')}_{self.args.comparator}_{self.args.top_k}_{vec}2.json"
 
         t = time.time()
         print("Setting models...")
@@ -35,48 +39,36 @@ class GraphAssociation:
         self.all_vecs = list(self.id2vector.values())
 
         # Load a dict (id:title)
-        id2_title_dict_path = 'data/jawiki-20220601-id2title.pickle'
-        self.id2title = pickle_reader(id2_title_dict_path)
-        self.num_v = len(self.id2title)
+        title2id_dict_path = 'data/jawiki-20220601-title2id.pickle'
+        self.title2id = pickle_reader(title2id_dict_path)
+        self.num_v = len(self.title2id)
 
-        # Get ready for a dict which has all information
+        # Set a dataset
         self.dataset_path = f'data/dataset/{self.args.dataset_path}'
-        csv_data = csv_reader(self.dataset_path)
-        self.all_info = {}  # <- THIS HAS ALL INFORMATION
-        self.all_stims_vecs = []
-        self.num_b = len(csv_data)
-        for b, row in tqdm(enumerate(csv_data.itertuples()), total=self.num_b):
-            stims = [stim for stim in eval(row.stims)]
-            stims_ids = [self._get_keys_from_value(self.id2title, stim) for stim in stims]
-            if self.args.with_vec:
-                stims_vecs = [self.id2vector[idx].tolist() for idx in stims_ids]  # embed all stims
-                self.all_stims_vecs.append(stims_vecs)  # [b,n,d]
-                stims_dict = [{'id': idx, 'stim': stim, 'vec': vec} for idx, stim, vec, in zip(stims_ids, stims, stims_vecs)]
-            else:
-                stims_dict = [{'id': idx, 'stim': stim} for idx, stim in zip(stims_ids, stims)]
-            self.all_info[b] = {'cat':row.category, 'ans': row.answer, 'stims': stims_dict}
+        self.csv_data = csv_reader(self.dataset_path)
+        self.num_b = len(self.csv_data)
 
         print(f"Setted models in {time.time()-t}s")
 
 
-    # Associaton !!
-    def __call__(self) -> dict:
-
-        # Associate titles with stimulations using trained graph embeddings
+    # Compare stims with all titles using trained graph embeddings
+    def compare(self) -> None:
         t = time.time()
-        print("Associating...")
-        ranks = [i for i in range(self.args.top_k)]
-        for b in tqdm(range(self.num_b), total=self.num_b):
-            for n, stim in enumerate(self.all_info[b]['stims']):
-                ts = time.time()
-                all_compared_vecs = self.comparator(self.all_vecs, self.id2vector[stim['id']])  # compare a stim's vec with all title's vecs
-                print(f'Compared a stim with all titles in {time.time()-ts}')
-                ts = time.time()
-                sorted_args = [np.argsort(all_compared_vecs)[::-1][r].item() for r in ranks]
-                compared_vecs = [np.sort(all_compared_vecs)[::-1][r].tolist() for r in ranks]  # extract top k's vecs associated with a stim
-                print(f'Sorted all titles order by score in {time.time()-ts}')
+        print("Comparing...")
+        all_compared_stims = {}
+
+        for b, row in tqdm(enumerate(self.csv_data.itertuples()), total=self.num_b):
+            stims = [stim for stim in eval(row.stims)]
+            for n, stim in enumerate(stims):
+                if n != 0: continue  #                  <-                  be removed
+                print(f"{b:2d}-{n}: {stim}")
+                stim_id = self.title2id[stim]
+                all_compared_stims[stim_id] = {'stim': stim}
+                all_compared_vecs = self.comparator(self.all_vecs, self.id2vector[stim_id])  # compare a stim's vec with all title's vecs
+                sorted_args = [np.argsort(all_compared_vecs)[::-1][r].item() for r in self.ranks]
+                compared_vecs = [np.sort(all_compared_vecs)[::-1][r].tolist() for r in self.ranks]  # extract top k's vecs associated with a stim
                 compared_indicies = [self.all_indicies[idx] for idx in sorted_args]
-                compared_titles = [self.id2title[str(idx)] for idx in compared_indicies]
+                compared_titles = [self._get_keys_from_value(self.title2id, str(idx)) for idx in compared_indicies]
                 if self.args.with_vec:
                     compared_raw_vecs = [self.id2vector[str(idx)].tolist() for idx in compared_indicies]
                     compared_results = [
@@ -90,34 +82,55 @@ class GraphAssociation:
                         for idx, title, score
                         in zip(compared_indicies, compared_titles, compared_vecs)
                     ]
-                stim['associated'] = compared_results  # shape==[r, 4]
-                if n==0: break  ####################################################################  THIS LINE HAS TO BE REMOVED!!!
+                all_compared_stims[stim_id]['associated'] = compared_results  # shape==[r, 3(4)]
 
-            # Predict answer(s) based on stim["results"]
+        print(f'Compared in {time.time()-t}s')
+        json_writer(self.compared_stims_path, all_compared_stims)
+
+
+    # Associaton !!
+    def associate(self) -> dict:
+
+        # Associate titles with stimulations using trained graph embeddings
+        t = time.time()
+        print("Associating...")
+        all_compared_stims = json_reader(self.compared_stims_path)
+        all_info = {}  # <- THIS HAS ALL INFORMATION
+
+        for b, row in tqdm(enumerate(self.csv_data.itertuples()), total=self.num_b):
+            #  Make a dict which has all information
+            stims = [stim for stim in eval(row.stims)]
+            stims_ids = [self.title2id[stim] for stim in stims]
+            stims_dict = [{'id': idx, 'stim': stim, 'associated': all_compared_stims[idx]['associated']} for idx, stim in zip(stims_ids, stims)]
+            all_info[b] = {'cat':row.category, 'ans': row.answer, 'stims': stims_dict}
+
+            # Predict answer(s) based on stim["associated"]
             research_dict = {}
             found_flag = False
-            for r in ranks:
+            for r in self.ranks:
                 # search titles associated with stims every rank
-                for n, stim in enumerate(self.all_info[b]['stims']):
-                    if stim['associated'][r]['title'] in research_dict.keys():
+                for n, stim in enumerate(all_info[b]['stims']):
+                    # remove stims from associated words
+                    if stim['associated'][r]['title'] in stims:
+                        continue
+                    elif stim['associated'][r]['title'] in research_dict.keys():
                         research_dict[stim['associated'][r]['title']] += 1
                     else:
                         research_dict[stim['associated'][r]['title']] = 1
-                    if n == 0: break ####################################################################  THIS LINE HAS TO BE REMOVED!!!
+
                 # if found the title that is associated with all stims
                 if self.args.threshold in research_dict.values():
                     found_flag = True
                     break
 
             # record research results
-            self.all_info[b]['results'] = {}
-            self.all_info[b]['results']['predictions'] = research_dict
-            if found_flag: self.all_info[b]['results']['rank'] = r + 1
-            else: self.all_info[b]['results']['rank'] = 0
-            if b==0: break  ####################################################################  THIS LINE HAS TO BE REMOVED!!!
+            all_info[b]['results'] = {}
+            all_info[b]['results']['predictions'] = research_dict
+            if found_flag: all_info[b]['results']['rank'] = r + 1
+            else: all_info[b]['results']['rank'] = 0
 
         print(f'Associated in {time.time()-t}s')
-        return self.all_info
+        return all_info
 
 
     # Get key(s) from a value
@@ -133,7 +146,8 @@ class GraphAssociation:
 if __name__ == "__main__":
     start_time = time.time()
     graph_association = GraphAssociation(args)
-    results = graph_association()
-    output_json_path, _ = save_path_getter(args, name='results', filetype='json')
-    json_writer(output_json_path, results)
+    graph_association.compare()
+    #results = graph_association.associate()
+    #output_json_path, _ = save_path_getter(args, name='results', filetype='json')
+    #json_writer(output_json_path, results)
     print(f'Done in {time.time()-start_time}')
