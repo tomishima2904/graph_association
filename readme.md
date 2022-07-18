@@ -66,14 +66,12 @@ compared_words = json_reader(dataset_comparator_topk_vec.json)
 
 """
 以下のような構成となっている。
-compared_words[b*n]  # keyは刺激語のid
-                ├── ['stim']  # str: 刺激語のタイトル
-                ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
-                └── ['associated'][r]
-                                    ├── ['id']  # str: タイトルに対応するwikidataのid
-                                    ├── ['title']  # str: 刺激語のベクトルに近かかったタイトル
-                                    ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
-                                    └── ['score']  # float: 刺激語とタイトルの類似度(デフォルトはdot積の値)
+compared_words[b*n]  # keyは刺激語
+               └── [r]
+                    ├── ['id']  # str: タイトルに対応するwikidataのid
+                    ├── ['title']  # str: 刺激語のベクトルに近かかったタイトル
+                    ├── ['vec']  # list: 刺激語のidに対応する埋め込み表現(ベクトル)
+                    └── ['score']  # float: 刺激語とタイトルの類似度(デフォルトはdot積の値)
 """
 
 ```
