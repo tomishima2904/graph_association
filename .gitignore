@@ -2,7 +2,7 @@
 results
 Docker
 *__pycache__*
-models/embeddings*
+models
 note.txt
 run.sh
 *.out
