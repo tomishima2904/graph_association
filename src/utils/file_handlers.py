@@ -11,7 +11,7 @@ def file_name_getter(args) -> str:
         vec = 'withV'
     else:
         vec = 'WOV'
-    return f'{vec}_th{args.threshold}'
+    return f'{vec}_TH{args.threshold}'
 
 
 # get a directory name
@@ -25,7 +25,7 @@ def dir_name_getter(args) -> str:
         now = datetime.datetime.now(JST)
         date_time = now.strftime('%y%m%d_%H%M%S')
 
-    dataset_name = args.dataset_path.replace('.csv', '')
+    dataset_name = args.dataset_path
     save_dir = f"results/{date_time}_{dataset_name}_{file_name_getter(args)}"
 
     os.makedirs(save_dir, exist_ok=True)  # make dir if not exists
