@@ -27,7 +27,7 @@ class GraphAssociation:
         self.ranks = [i for i in range(self.args.top_k)]
         if args.with_vec: vec = 'withV'
         else: vec = 'WOV'
-        self.compared_stims_path = f"results/{self.args.dataset_path.replace('.csv', '')}_{self.args.comparator}_{self.args.top_k}_{vec}2.json"
+        self.compared_stims_path = f"models/{self.args.dataset_path.replace('.csv', '')}_{self.args.comparator}_{self.args.top_k}_{vec}.json"
 
         t = time.time()
         print("Setting models...")
@@ -86,6 +86,26 @@ class GraphAssociation:
         print(f'Compared in {time.time()-t}s')
         json_writer(self.compared_stims_path, all_compared_stims)
 
+        self.is_linked()  # connection check
+
+
+    # Are there connections between stim and titles ?
+    def is_linked(self) -> None:
+        t = time.time()
+        print("Connection checking...")
+        all_compared_stims = json_reader(self.compared_stims_path)
+        islinked_list = pd.DataFrame(pickle_reader('data/jawiki-20220601_fit2022v2_islinked.pickle'))
+        for stim in all_compared_stims.keys():
+            for r, asso in enumerate(all_compared_stims[stim]):
+                extract_links = islinked_list[(islinked_list[0]==int(self.title2id[stim])) & (islinked_list[2]==int(self.title2id[asso['title']]))]
+                if len(extract_links) > 0:
+                    all_compared_stims[stim][r]['islinked'] = 1
+                else:
+                    all_compared_stims[stim][r]['islinked'] = 0
+        print(f'Checked in {time.time()-t}s')
+        json_writer(self.compared_stims_path, all_compared_stims)
+        print(f'Checking done in {time.time()-t}s')
+
 
     # Associaton !!
     def associate(self) -> dict:
@@ -95,13 +115,15 @@ class GraphAssociation:
         print("Associating...")
         all_compared_stims = json_reader(self.compared_stims_path)
         all_info = {}  # <- THIS HAS ALL INFORMATION
+        summary_info = {}
 
         for b, row in tqdm(enumerate(self.csv_data.itertuples()), total=self.num_b):
             #  Make a dict which has all information
             stims = [stim for stim in eval(row.stims)]
             stims_ids = [self.title2id[stim] for stim in stims]
-            stims_dict = [{'id': idx, 'stim': stim, 'associated': all_compared_stims[idx]['associated']} for idx, stim in zip(stims_ids, stims)]
+            stims_dict = [{'id': idx, 'stim': stim, 'associated': all_compared_stims[stim]} for idx, stim in zip(stims_ids, stims)]
             all_info[b] = {'cat':row.category, 'ans': row.answer, 'stims': stims_dict}
+            summary_info[b] = {'cat': row.category, 'ans': row.answer, 'stims': stims}
 
             # Predict answer(s) based on stim["associated"]
             research_dict = {}
@@ -125,11 +147,19 @@ class GraphAssociation:
             # record research results
             all_info[b]['results'] = {}
             all_info[b]['results']['predictions'] = research_dict
-            if found_flag: all_info[b]['results']['rank'] = r + 1
-            else: all_info[b]['results']['rank'] = 0
+            summary_info[b]['results'] = {}
+            research_dict_summary = {k: v for k, v in research_dict.items() if v >= self.args.summary_th}
+            if found_flag:
+                all_info[b]['results']['rank'] = r + 1
+                summary_info[b]['results']['rank'] = r + 1
+                summary_info[b]['results']['predictions'] = research_dict_summary
+            else:
+                all_info[b]['results']['rank'] = 0
+                summary_info[b]['results']['rank'] = 0
+                summary_info[b]['results']['predictions'] = 'Not found'
 
         print(f'Associated in {time.time()-t}s')
-        return all_info
+        return all_info, summary_info
 
 
     # Get key(s) from a value
@@ -145,8 +175,11 @@ class GraphAssociation:
 if __name__ == "__main__":
     start_time = time.time()
     graph_association = GraphAssociation(args)
-    graph_association.compare()
-    #results = graph_association.associate()
-    #output_json_path, _ = save_path_getter(args, name='results', filetype='json')
-    #json_writer(output_json_path, results)
+    # graph_association.compare()
+    results, summary = graph_association.associate()
+    dir_name, date_time = dir_name_getter(args)
+    results_json_path = f'{dir_name}/results_{date_time}_{file_name_getter(args)}.json'
+    summary_json_path = f'{dir_name}/summary_{date_time}_{file_name_getter(args)}.json'
+    json_writer(results_json_path, results)
+    json_writer(summary_json_path, summary)
     print(f'Done in {time.time()-start_time}')

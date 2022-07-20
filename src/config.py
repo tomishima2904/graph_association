@@ -9,6 +9,7 @@ parser.add_argument('--dataset_path', default='fit2022v2.csv', type=str, help="c
 parser.add_argument('--emb_model', default='embeddings_all_0_v50.pickle', type=str, help="picklefile name of trained embedding model")
 parser.add_argument('--get_date', default=None, help='date_time for path name')
 parser.add_argument('--pages_tsv', default='jawiki-20220601-page.sql.tsv', type=str, help="tsvfile name of wikidata page")
+parser.add_argument('--summary_th', default=3, type=int, help="extract number of summary")
 parser.add_argument('--threshold', default=5, type=int, help="threshold of association")
 parser.add_argument('--top_k', default=150, type=int, help="extract top_k's scores")
 parser.add_argument('--use_cuda', default='f', type=strtobool, help="using GPU or not")  # Only CPU works!
