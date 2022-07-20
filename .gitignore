@@ -4,5 +4,5 @@ Docker
 *__pycache__*
 models
 note.txt
-run.sh
+run*sh
 *.out
