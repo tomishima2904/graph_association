@@ -7,7 +7,7 @@ import sys
 from utils.comparators import Comparators
 from utils.converters import *
 from utils.file_handlers import *
-from config import args
+from config import args, KeyWords
 
 
 class GraphAssociation:
@@ -25,26 +25,24 @@ class GraphAssociation:
         self.args = args  # set options
         self.comparator = Comparators(self.args)  # define dist func
         self.ranks = [i for i in range(self.args.top_k)]
-        if args.with_vec: vec = 'withV'
-        else: vec = 'WOV'
-        self.compared_stims_path = f"models/{self.args.dataset_path.replace('.csv', '')}_{self.args.comparator}_{self.args.top_k}_{vec}.json"
+        self.compared_stims_path = KeyWords.COMPARED_MODEL_PATH
 
         t = time.time()
         print("Setting models...")
 
         # Load a dict (id:vec)
-        self.emb_path = f'models/{self.args.emb_model}'  # path of a trained graph embedding model
+        self.emb_path = KeyWords.ALL_EMBEDDINGS_PATH
         self.id2vector = pickle_reader(self.emb_path)
         self.all_indicies = list(self.id2vector.keys())
         self.all_vecs = list(self.id2vector.values())
 
         # Load a dict (id:title)
-        title2id_dict_path = 'data/jawiki-20220601-title2id.pickle'
+        title2id_dict_path = KeyWords.TITLE2ID_PATH
         self.title2id = pickle_reader(title2id_dict_path)
         self.num_v = len(self.title2id)
 
         # Set a dataset
-        self.dataset_path = f'data/dataset/{self.args.dataset_path}'
+        self.dataset_path = KeyWords.DATASET_PATH
         self.csv_data = csv_reader(self.dataset_path)
         self.num_b = len(self.csv_data)
 
@@ -94,7 +92,7 @@ class GraphAssociation:
         t = time.time()
         print("Connection checking...")
         all_compared_stims = json_reader(self.compared_stims_path)
-        islinked_list = pd.DataFrame(pickle_reader('data/jawiki-20220601_fit2022v2_islinked.pickle'))
+        islinked_list = pd.DataFrame(pickle_reader(KeyWords.IS_LINKED_PATH))
         for stim in all_compared_stims.keys():
             for r, asso in enumerate(all_compared_stims[stim]):
                 extract_links = islinked_list[(islinked_list[0]==int(self.title2id[stim])) & (islinked_list[2]==int(self.title2id[asso['title']]))]
@@ -121,7 +119,11 @@ class GraphAssociation:
             #  Make a dict which has all information
             stims = [stim for stim in eval(row.stims)]
             stims_ids = [self.title2id[stim] for stim in stims]
-            stims_dict = [{'id': idx, 'stim': stim, 'associated': all_compared_stims[stim]} for idx, stim in zip(stims_ids, stims)]
+            stims_scores = [np.dot(self.id2vector[idx], self.id2vector[self.title2id[row.answer]]).item() for idx in stims_ids]
+            stims_dict = [
+                {'id': idx, 'stim': stim, 'score': score, 'associated': all_compared_stims[stim]}
+                for idx, stim, score in zip(stims_ids, stims, stims_scores)
+            ]
             all_info[b] = {'cat':row.category, 'ans': row.answer, 'stims': stims_dict}
             summary_info[b] = {'cat': row.category, 'ans': row.answer, 'stims': stims}
 
@@ -177,9 +179,6 @@ if __name__ == "__main__":
     graph_association = GraphAssociation(args)
     # graph_association.compare()
     results, summary = graph_association.associate()
-    dir_name, date_time = dir_name_getter(args)
-    results_json_path = f'{dir_name}/results_{date_time}_{file_name_getter(args)}.json'
-    summary_json_path = f'{dir_name}/summary_{date_time}_{file_name_getter(args)}.json'
-    json_writer(results_json_path, results)
-    json_writer(summary_json_path, summary)
+    json_writer(KeyWords.RESULTS_JSON_PATH, results)
+    json_writer(KeyWords.SUMMARY_JSON_PATH, summary)
     print(f'Done in {time.time()-start_time}')
