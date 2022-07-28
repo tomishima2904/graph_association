@@ -28,7 +28,6 @@ def dir_name_getter(args) -> str:
     dataset_name = args.dataset_path
     save_dir = f"results/{date_time}_{dataset_name}_{file_name_getter(args)}"
 
-    os.makedirs(save_dir, exist_ok=True)  # make dir if not exists
     return save_dir, date_time
 
 
@@ -51,7 +50,7 @@ def csv_reader(path:str, encoding='utf-8') -> pd.DataFrame:
 def csv_writer(path:str, results:list, header:list, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f)
-        writer.writerow(header)
+        if type(header)==str: writer.writerow(header)
         writer.writerows(results)
     print(f"Successfully dumped {path} !")
 
