@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from tqdm import tqdm
-import sys
+import sys, os
 
 # original modules
 from utils.comparators import Comparators
@@ -95,8 +95,8 @@ class GraphAssociation:
         islinked_list = pd.DataFrame(pickle_reader(KeyWords.IS_LINKED_PATH))
         for stim in all_compared_stims.keys():
             for r, asso in enumerate(all_compared_stims[stim]):
-                extract_links = islinked_list[(islinked_list[0]==int(self.title2id[stim])) & (islinked_list[2]==int(self.title2id[asso['title']]))]
-                if len(extract_links) > 0:
+                extract_islinked_list = islinked_list[(islinked_list[0]==int(self.title2id[stim])) & (islinked_list[2]==int(self.title2id[asso['title']]))]
+                if len(extract_islinked_list) > 0:
                     all_compared_stims[stim][r]['islinked'] = 1
                 else:
                     all_compared_stims[stim][r]['islinked'] = 0
@@ -114,18 +114,27 @@ class GraphAssociation:
         all_compared_stims = json_reader(self.compared_stims_path)
         all_info = {}  # <- THIS HAS ALL INFORMATION
         summary_info = {}
+        islinked_list = pd.DataFrame(pickle_reader(KeyWords.IS_LINKED_PATH))
 
         for b, row in tqdm(enumerate(self.csv_data.itertuples()), total=self.num_b):
             #  Make a dict which has all information
             stims = [stim for stim in eval(row.stims)]
             stims_ids = [self.title2id[stim] for stim in stims]
             stims_scores = [np.dot(self.id2vector[idx], self.id2vector[self.title2id[row.answer]]).item() for idx in stims_ids]
-            stims_dict = [
-                {'id': idx, 'stim': stim, 'score': score, 'associated': all_compared_stims[stim]}
-                for idx, stim, score in zip(stims_ids, stims, stims_scores)
+            extract_islinked_list = [
+                len(islinked_list[
+                    (islinked_list[0]==int(self.title2id[row.answer])) & (islinked_list[2]==int(self.title2id[stim]))
+                ])
+                for stim in stims
             ]
+            extract_islinked_list = [1 if islinked_num >0 else 0 for islinked_num in extract_islinked_list]
+            stims_dict = [
+                {'id': idx, 'stim': stim, 'score': score, 'islinked': islinked, 'associated': all_compared_stims[stim]}
+                for idx, stim, score, islinked in zip(stims_ids, stims, stims_scores, extract_islinked_list)
+            ]
+            summary_stims_dict = [{stim: islinked} for stim, islinked in zip(stims, extract_islinked_list)]
             all_info[b] = {'cat':row.category, 'ans': row.answer, 'stims': stims_dict}
-            summary_info[b] = {'cat': row.category, 'ans': row.answer, 'stims': stims}
+            summary_info[b] = {'cat': row.category, 'ans': row.answer, 'stims': summary_stims_dict}
 
             # Predict answer(s) based on stim["associated"]
             research_dict = {}
@@ -179,6 +188,7 @@ if __name__ == "__main__":
     graph_association = GraphAssociation(args)
     # graph_association.compare()
     results, summary = graph_association.associate()
+    os.makedirs(KeyWords.DIR_NAME, exist_ok=True)  # make dir if not exists
     json_writer(KeyWords.RESULTS_JSON_PATH, results)
     json_writer(KeyWords.SUMMARY_JSON_PATH, summary)
     print(f'Done in {time.time()-start_time}')
